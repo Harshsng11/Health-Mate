@@ -1,0 +1,5 @@
+{
+  "name": "Health Mate",
+  "description": "Your AI-powered health companion for symptom analysis, doctor bookings, and medical report management.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}
