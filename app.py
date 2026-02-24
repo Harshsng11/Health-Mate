@@ -72,7 +72,25 @@ def init_db():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Inject API Key safely for the preview environment
+    api_key = os.environ.get('GEMINI_API_KEY', '')
+    
+    # Read the index.html content
+    try:
+        with open('templates/index.html', 'r') as f:
+            content = f.read()
+        
+        # Replace the placeholder with the actual API key
+        content = content.replace('const apiKey = "YOUR_GEMINI_API_KEY";', f'const apiKey = "{api_key}";')
+        return content
+    except FileNotFoundError:
+        return "index.html not found", 404
+
+@app.route('/api/config')
+def get_config():
+    return jsonify({
+        "apiKey": os.environ.get('GEMINI_API_KEY', '')
+    })
 
 @app.route('/api/doctors')
 def get_doctors():

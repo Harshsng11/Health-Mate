@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "node server.js",
     "python-dev": "python3 app.py",
+    "start": "node server.js",
+    "build": "echo 'No build step required'",
     "lint": "echo 'No linting needed for this project'"
   },
   "dependencies": {

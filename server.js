@@ -70,6 +70,10 @@ if (count === 0) {
 }
 
 // API Routes
+app.get('/api/config', (req, res) => {
+    res.json({ apiKey: process.env.GEMINI_API_KEY || "" });
+});
+
 app.get('/api/doctors', (req, res) => {
     res.json(db.prepare("SELECT * FROM doctors").all());
 });

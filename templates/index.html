@@ -82,7 +82,18 @@
                     <i data-lucide="file-text" class="w-5 h-5"></i>
                     <span class="font-medium">Medical Reports</span>
                 </button>
+                <button onclick="switchTab('settings')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100" data-tab="settings">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="font-medium">Settings</span>
+                </button>
             </nav>
+
+            <div id="ai-status-badge" class="px-6 py-4 border-t border-slate-100">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-slate-300"></div>
+                    <span id="status-text" class="text-[10px] font-bold uppercase tracking-widest text-slate-400">AI Offline</span>
+                </div>
+            </div>
 
             <div class="p-4 border-t border-slate-100">
                 <div id="user-profile" class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">

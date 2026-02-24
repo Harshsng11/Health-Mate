@@ -11,18 +11,40 @@ let state = {
 };
 
 // Gemini API Setup
-// The apiKey is now provided by index.html (injected by the server)
 let ai = null;
 
-try {
-    const { GoogleGenAI } = await import("@google/genai");
-    if (typeof apiKey !== 'undefined' && apiKey && apiKey !== "YOUR_GEMINI_API_KEY") {
-        ai = new GoogleGenAI({ apiKey });
-    } else {
-        console.warn("Gemini API Key is missing or not set.");
+async function initAI(key) {
+    if (!key || key === "YOUR_GEMINI_API_KEY") return;
+    try {
+        const { GoogleGenAI } = await import("@google/genai");
+        ai = new GoogleGenAI({ apiKey: key });
+        console.log("AI initialized successfully");
+        updateAIStatus(true);
+    } catch (e) {
+        console.error("Failed to load Google GenAI SDK:", e);
+        updateAIStatus(false);
     }
-} catch (e) {
-    console.error("Failed to load Google GenAI SDK:", e);
+}
+
+function updateAIStatus(ready) {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    if (dot && text) {
+        if (ready) {
+            dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+            text.textContent = "AI Ready";
+            text.className = "text-[10px] font-bold uppercase tracking-widest text-emerald-600";
+        } else {
+            dot.className = "w-2 h-2 rounded-full bg-slate-300";
+            text.textContent = "AI Offline";
+            text.className = "text-[10px] font-bold uppercase tracking-widest text-slate-400";
+        }
+    }
+}
+
+// Initialize AI if key is available
+if (typeof apiKey !== 'undefined' && apiKey) {
+    initAI(apiKey);
 }
 
 // DOM Elements
@@ -33,13 +55,40 @@ const onboardingForm = document.getElementById('onboarding-form');
 // Initialize
 async function init() {
     console.log("Initializing app...");
+    
+    // 1. Check localStorage for a user-saved key
+    const localKey = localStorage.getItem('healthmate_api_key');
+    if (localKey) {
+        await initAI(localKey);
+    }
+
+    // 2. Try to get key from server if still not initialized
+    if (!ai) {
+        try {
+            const res = await fetch('/api/config');
+            const config = await res.json();
+            if (config.apiKey) {
+                await initAI(config.apiKey);
+            }
+        } catch (e) {
+            console.warn("Could not fetch config from server");
+        }
+    }
+
     const savedUser = localStorage.getItem('healthmate_user');
     if (savedUser) {
         try {
             state.user = JSON.parse(savedUser);
             console.log("User loaded from storage:", state.user);
             updateUserProfile();
-            await loadData();
+            
+            // Load data but don't block app if it fails
+            try {
+                await loadData();
+            } catch (e) {
+                console.error("Failed to load initial data:", e);
+            }
+            
             switchTab('dashboard');
         } catch (e) {
             console.error("Error parsing saved user:", e);
@@ -169,6 +218,7 @@ function render() {
     else if (state.activeTab === 'ai-help') renderAIHelp();
     else if (state.activeTab === 'doctors') renderDoctors();
     else if (state.activeTab === 'reports') renderReports();
+    else if (state.activeTab === 'settings') renderSettings();
     
     updateUserProfile();
     lucide.createIcons();
@@ -570,6 +620,52 @@ function renderReports() {
         </div>
     `;
 }
+
+function renderSettings() {
+    tabContent.innerHTML = `
+        <div class="max-w-2xl mx-auto space-y-8 animate-fade-in">
+            <header>
+                <h1 class="text-3xl font-bold text-slate-900">Settings</h1>
+                <p class="text-slate-500">Configure your health companion.</p>
+            </header>
+
+            <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Gemini API Key</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="settings-api-key" 
+                            class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                            placeholder="AIzaSy..." value="${localStorage.getItem('healthmate_api_key') || ''}">
+                        <button onclick="saveApiKey()" class="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all">Save</button>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-400">Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 underline">Google AI Studio</a>. This key is stored locally in your browser.</p>
+                </div>
+
+                <div class="pt-6 border-t border-slate-100">
+                    <button onclick="logout()" class="flex items-center gap-2 text-red-600 font-bold hover:text-red-700 transition-colors">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        Logout from Health Mate
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.saveApiKey = async () => {
+    const key = document.getElementById('settings-api-key').value.trim();
+    if (!key) return alert("Please enter a key");
+    localStorage.setItem('healthmate_api_key', key);
+    await initAI(key);
+    alert("API Key saved successfully!");
+};
+
+window.logout = () => {
+    if (confirm("Do you want to logout?")) {
+        localStorage.removeItem('healthmate_user');
+        window.location.reload();
+    }
+};
 
 window.uploadReport = async (e) => {
     const file = e.target.files[0];
